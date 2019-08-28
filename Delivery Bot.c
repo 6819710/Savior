@@ -57,6 +57,7 @@ void closeGripper()
 	setMotorSpeed(gripperMotor, -gripperSpeed);
 	while (getMotorEncoder(gripperMotor) > -1500) {}
 	setMotorSpeed(gripperMotor, 0);
+	gripperOpen = false;
 }
 
 void openGripper()
@@ -65,6 +66,7 @@ void openGripper()
 	setMotorSpeed(gripperMotor, gripperSpeed);
 	while (getMotorEncoder(gripperMotor) < 1500) {}
 	setMotorSpeed(gripperMotor, 0);
+	gripperOpen = true;
 }
 
 task main()
@@ -74,76 +76,56 @@ task main()
 	{
 		// Read the sensor
 		currentDistance = getUSDistance(sonarSensor);
-
-		//Has payload not been delivered
-		if(!delivered)
-		{
-			//Is payload not being carried
-			if (gripperOpen)
-			{
-
-				//Is payload in gripper range, grab it.
-				if((gripperRange - currentDistance) > 0)
-				{
-					if (correcting)
-					{
-						correctionDuration = time1[T1];
-						correcting = false;
-					}
-				
-					//Stop driving
-					stopMove();
-
-					//Close Gripper
-					closeGripper();
-					gripperOpen = false;
-				}
-				
-				//Is payload there, but out of range of claws, drive forward
-				else if ((gripperRange - currentDistance) > -correctionRange)
-				{
-					if(!correcting)
-					{
-						//set timer to zero
-						clearTimer(T1); 
-						correcting = true;
-					}
 		
-					//moves forward a little
-					forwardMove();
-				}
-			}
-			
-			//are grippers closed but payload not delivered
-			else
-			{
-				//drive to location
-				forwardMove(drivingDuration);
-				
-				//Open gripper to drop off payload
-				openGripper();
-
-				//setMotorSpeed(gripperMotor, -gripperSpeed);
-				//sleep(gripperDuration);
-				gripperOpen = true;
-				delivered = true;
-			}
-			if(currentDistance > (gripperRange+correctionRange+errorMargin))
-			{
-				stopMove();
-			}
-		}
-//Is payload delivered
-		else
+		// Open gripper if delivered flag and gripper is closed.
+		if(delivered && !gripperOpen)
 		{
-			//return to carrier
-			backwardMove(drivingDuration);
-
-			//reverse any corrections made
-			backwardMove(correctionDuration);
+			openGripper();
+		}
+	
+		// Stop Moving and Close Gripper if payload is detected in gripper range
+		if(!delivered && gripperOpen && ((gripperRange - currentDistance) > 0))
+		{
+			if (correcting) // Set correction duration 
+			{
+				correctionDuration = time1[T1];
+				correcting = false;
+			}
+			stopMove();
+			closeGripper();
+		}
+		
+		// Move to payload if payload is detected outside of gripper range
+		if(!delivered && gripperOpen && ((gripperRange - currentDistance) > -correctionRange))
+		{
+			if(!correcting) // Reset Timer if not currently correcing.
+			{
+				clearTimer(T1); 
+				correcting = true;
+			}
+			forwardMove();
+		}
+		
+		// Move to desitination if not delivered and grippers closed
+		if(!delivered && !gripperOpen)
+		{
+			forwardMove(drivingDuration);
+			delivered = true;
+		}
 			
-			//For next loop to start
+		//TODO: F
+		if(!delivered &&(currentDistance > (gripperRange+correctionRange+errorMargin)))
+		{
+			stopMove();
+		}
+		
+		// Return to carrier if delivered and gripper opened
+		if(delivered && gripperOpen)
+		{
+			backwardMove(drivingDuration);
+			backwardMove(correctionDuration);
 			delivered = false;
+			currentDistance = 0;
 		}
 	}
 }
