@@ -23,7 +23,7 @@
 task main()
 {
 	//Configuration - Change these to fine tune.
-	int gripperRange = 4;
+	int gripperRange = 5;
 	int correctionRange = 8;
 	int errorMargin = 2;
 	int gripperSpeed = 50;
@@ -35,7 +35,8 @@ task main()
 	int currentDistance = 0;
 	bool gripperOpen = true;
 	bool delivered = false;
-	int correctionTraveled = 0;
+	bool correcting = false;
+	int correctionDuration = 0;
 
 //Infinite Loop
 	while(true)
@@ -53,6 +54,12 @@ task main()
 //Is payload in gripper range, grab it.
 				if((gripperRange - currentDistance) > 0)
 				{
+					if (correcting)
+					{
+						correctionDuration = time1[T1];
+						correcting = false;
+					}
+				
 					//Stop driving
 					setMotorSpeed(leftMotor, 0);
 					setMotorSpeed(rightMotor, 0);
@@ -67,9 +74,19 @@ task main()
 //Is payload there, but out of range of claws, drive forward
 				else if ((gripperRange - currentDistance) > -correctionRange)
 				{
+					if(!correcting)
+					{
+						//set timer to zero
+						clearTimer(T1); 
+						correcting = true;
+					}
+		
 					//moves forward a little
 					setMotorSpeed(leftMotor, (drivingSpeed/2));
 					setMotorSpeed(rightMotor, (drivingSpeed/2));
+					
+					
+					
 				}
 			}
 //are grippers closed but payload not delivered
@@ -109,6 +126,14 @@ task main()
 			setMotorSpeed(rightMotor, -drivingSpeed);  	//Set the rightMotor (motor6) to half power (50)
 			sleep(drivingDuration);																//Wait for x milliseconds before continuing on in the program.
 
+			//reverse any corrections made
+			setMotorSpeed(leftMotor, (-drivingSpeed/2));
+			setMotorSpeed(rightMotor, (-drivingSpeed/2));
+			sleep(correctionDuration);
+			
+			//stop
+			setMotorSpeed(leftMotor, 0);
+			setMotorSpeed(rightMotor, 0);
 			//For next loop to start
 			delivered = false;
 		}
