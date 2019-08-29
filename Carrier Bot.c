@@ -17,7 +17,9 @@
 	int backDistance = 0;
 
 //States
-	bool baysFull = false;
+	bool frontBayFull = false;
+	bool backBayFull = false;
+	
 
 
 //Variables
@@ -28,7 +30,6 @@
 //Stop driving
 void stopMoving()
 {
-
 	setMotorSpeed(leftMotor, 0);
 	setMotorSpeed(rightMotor, 0);
 }
@@ -67,13 +68,22 @@ void moveBackward(int duration)
 void checkBays()
 {
 	//if one is there
-	if (frontDistance < parkedDistance || backDistance < parkedDistance)
+	if (frontDistance < parkedDistance)
 	{
-		baysFull = true;
+		fronBayFull = true;
 	}
 	else
 	{
-		baysFull = false;
+		fronBayFull = false;
+	}
+	
+	if (backDistance < parkedDistance)
+	{
+		backBayFull = true;
+	}
+	else
+	{
+		backBayFull = false;
 	}
 	
 	
@@ -96,7 +106,7 @@ task main()
 		
 		//moveForward(drivingDuration);
 		//moveBackward(drivingDuration);
-		if (baysFull)
+		if (frontBayFull && backBayFull)
 		{
 			moveForward(drivingDuration);
 			sleep(waitingDuration);
