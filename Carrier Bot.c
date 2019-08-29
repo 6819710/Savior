@@ -1,5 +1,5 @@
-#pragma config(Sensor, S1,     Sensor1,        sensorEV3_Ultrasonic)
-#pragma config(Sensor, S4,     Sensor4,        sensorEV3_Ultrasonic)
+#pragma config(Sensor, S1,     backSensor,     sensorEV3_Ultrasonic)
+#pragma config(Sensor, S4,     frontSensor,    sensorEV3_Ultrasonic)
 #pragma config(Motor,  motorA,          beltA,         tmotorEV3_Large, PIDControl, encoder)
 #pragma config(Motor,  motorB,          leftMotor,     tmotorEV3_Large, PIDControl, driveLeft, encoder)
 #pragma config(Motor,  motorC,          rightMotor,    tmotorEV3_Large, PIDControl, driveRight, encoder)
@@ -8,22 +8,22 @@
 
 //Configuration - Change these to fine tune.
 	int drivingSpeed = 15;
-	int drivingDuration = 2000;
-/*
-	int gripperRange = 5;
-	int correctionRange = 8;
-	int errorMargin = 2;
-	int gripperSpeed = 50;
-	//int gripperDuration = 500; //ms
+	int drivingDuration = 1000;
+	int waitingDuration = 2000; //Time to wait after sending out a bot
+	int parkedDistance = 7; //distance which means there IS a car in the bay
+	
+//Variables
+	int frontDistance = 0;
+	int backDistance = 0;
+
+//States
+	bool baysFull = false;
 
 
-	//Variables
-	int currentDistance = 0;
-	bool gripperOpen = true;
-	bool delivered = false;
-	bool correcting = false;
-	int correctionDuration = 0;
-*/
+//Variables
+
+
+
 
 //Stop driving
 void stopMoving()
@@ -63,15 +63,51 @@ void moveBackward(int duration)
 	stopMoving();
 }
 
+//Sense if both the delivery Robots are present
+void checkBays()
+{
+	//if one is there
+	if (frontDistance < parkedDistance || backDistance < parkedDistance)
+	{
+		baysFull = true;
+	}
+	else
+	{
+		baysFull = false;
+	}
+	
+	
+	//if they are not
+	//return false;
+}
+
+
 task main()
 {
 	//Infinite Loop
 	while(true)
 	{
-		moveForward(drivingDuration);
-		//playSound(soundBeepBeep);
-    moveBackward(drivingDuration);
-    //playSound(soundBlip);
+		//update variables
+		frontDistance = getUSDistance(frontSensor);
+		backDistance = getUSDistance(backSensor);
+		
+		//check for bots
+		checkBays();
+		
+		//moveForward(drivingDuration);
+		//moveBackward(drivingDuration);
+		if (baysFull)
+		{
+			moveForward(drivingDuration);
+			sleep(waitingDuration);
+			moveBackward(drivingDuration);
+			sleep(waitingDuration);	
+		}
+		else
+		{
+			moveForward(1);
+			moveBackward(1);
+		}
 	}
 
 
