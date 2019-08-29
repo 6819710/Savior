@@ -1,4 +1,5 @@
 #pragma config(Sensor, S1,     colorSensor,    sensorEV3_Color, modeEV3Color_Color)
+#pragma config(Sensor, S2,     gyroscopeSensor,     sensorEV3_Gyro)
 #pragma config(Sensor, S4,     sonarSensor,    sensorEV3_Ultrasonic)
 #pragma config(Motor,  motorA,          gripperMotor,  tmotorEV3_Medium, PIDControl, encoder)
 #pragma config(Motor,  motorB,          leftMotor,     tmotorEV3_Large, PIDControl, driveLeft, encoder)
@@ -11,6 +12,7 @@ int errorMargin = 2;
 int gripperSpeed = 50;
 int drivingSpeed = 25;
 int drivingDuration = 2500;
+TLegoColors colorDetected = colorNone;
 
 //Variables
 int currentDistance = 0;
@@ -28,7 +30,7 @@ void stopMove()
 void forwardMove()
 {
 	setMotorSpeed(leftMotor, drivingSpeed);
-	setMotorSpeed(rightMotor, drivingSpeed);	
+	setMotorSpeed(rightMotor, drivingSpeed);
 }
 
 void forwardMove(int duration)
@@ -50,6 +52,25 @@ void backwardMove(int duration)
 	sleep(duration);
 	stopMove();
 }
+
+void rotateClockwise(int angle)
+{
+	resetGyro(gyroscopeSensor);
+	setMotorSpeed(leftMotor, -drivingSpeed);
+	setMotorSpeed(rightMotor, drivingSpeed);
+	while(getGyroDegrees(gyroscopeSensor) < angle){}
+	stopMove();
+}
+
+void rotateAnticlockwise(int angle)
+{
+	resetGyro(gyroscopeSensor);
+	setMotorSpeed(leftMotor, drivingSpeed);
+	setMotorSpeed(rightMotor, -drivingSpeed);
+	while(getGyroDegrees(gyroscopeSensor) > -angle){}
+	stopMove();
+}
+
 
 void closeGripper()
 {
@@ -76,17 +97,17 @@ task main()
 	{
 		// Read the sensor
 		currentDistance = getUSDistance(sonarSensor);
-		
+
 		// Open gripper if delivered flag and gripper is closed.
 		if(delivered && !gripperOpen)
 		{
 			openGripper();
 		}
-	
+
 		// Stop Moving and Close Gripper if payload is detected in gripper range
 		if(!delivered && gripperOpen && ((gripperRange - currentDistance) > 0))
 		{
-			if (correcting) // Set correction duration 
+			if (correcting) // Set correction duration
 			{
 				correctionDuration = time1[T1];
 				correcting = false;
@@ -94,38 +115,117 @@ task main()
 			stopMove();
 			closeGripper();
 		}
-		
+
 		// Move to payload if payload is detected outside of gripper range
 		if(!delivered && gripperOpen && ((gripperRange - currentDistance) > -correctionRange))
 		{
 			if(!correcting) // Reset Timer if not currently correcing.
 			{
-				clearTimer(T1); 
+				clearTimer(T1);
 				correcting = true;
 			}
 			forwardMove();
 		}
-		
-		// Move to desitination if not delivered and grippers closed
+
+		// detect color if not delivered and grippers closed
 		if(!delivered && !gripperOpen)
+		{
+			colorDetected = getColorName(colorSensor);
+		}
+
+		// deliver to red destination if color detected is set to red
+		if(!delivered && !gripperOpen && (colorDetected == colorRed))
+		{
+			forwardMove(drivingDuration);
+			rotateClockwise(90);
+			forwardMove(drivingDuration);
+			delivered = true;
+		}
+
+		// deliver to blue destination if color detected is set to blue
+		if(!delivered && !gripperOpen && (colorDetected == colorBlue))
 		{
 			forwardMove(drivingDuration);
 			delivered = true;
 		}
-			
-		//TODO: F
-		if(!delivered &&(currentDistance > (gripperRange+correctionRange+errorMargin)))
+
+		// deliver to yellow destination if color detected is set to yellow
+		if(!delivered && !gripperOpen && (colorDetected == colorYellow))
 		{
-			stopMove();
+			forwardMove(drivingDuration);
+			rotateAnticlockwise(90);
+			forwardMove(drivingDuration);
+			delivered = true;
 		}
-		
-		// Return to carrier if delivered and gripper opened
-		if(delivered && gripperOpen)
+
+		// deliver to green destination if color detected is set to green
+		if(!delivered && !gripperOpen && (colorDetected == colorGreen))
+		{
+			forwardMove(drivingDuration);
+			rotateClockwise(90);
+			forwardMove(drivingDuration);
+			rotateAnticlockwise(90);
+			forwardMove(drivingDuration);
+			delivered = true;
+		}
+
+		//Handle object removed from gripper sights before collecting it
+		if(!delivered && correcting &&(currentDistance > (gripperRange+correctionRange+errorMargin)))
+		{
+				playSoundFile("Error");
+				correctionDuration = time1[T1];
+				correcting = false;
+				backwardMove(correctionDuration);
+				currentDistance = 0;
+				colorDetected = colorNone;
+		}
+
+		// return from red desination once delivered and jaws opened
+		if(delivered && gripperOpen && (colorDetected == colorRed))
+		{
+			backwardMove(drivingDuration);
+			rotateAnticlockwise(90);
+			backwardMove(drivingDuration);
+			backwardMove(correctionDuration);
+			delivered = false;
+			currentDistance = 0;
+			colorDetected = colorNone;
+		}
+
+		// return from blue desination once delivered and jaws opened
+		if(delivered && gripperOpen && (colorDetected == colorBlue))
 		{
 			backwardMove(drivingDuration);
 			backwardMove(correctionDuration);
 			delivered = false;
 			currentDistance = 0;
+			colorDetected = colorNone;
+		}
+
+		// return from yellow desination once delivered and jaws opened
+		if(delivered && gripperOpen && (colorDetected == colorYellow))
+		{
+			backwardMove(drivingDuration);
+			rotateClockwise(90);
+			backwardMove(drivingDuration);
+			backwardMove(correctionDuration);
+			delivered = false;
+			currentDistance = 0;
+			colorDetected = colorNone;
+		}
+
+		// return from green desination once delivered and jaws opened
+		if(delivered && gripperOpen && (colorDetected == colorGreen))
+		{
+			backwardMove(drivingDuration);
+			rotateClockwise(90);
+			backwardMove(drivingDuration);
+			rotateAnticlockwise(90);
+			backwardMove(drivingDuration);
+			backwardMove(correctionDuration);
+			delivered = false;
+			currentDistance = 0;
+			colorDetected = colorNone;
 		}
 	}
 }
