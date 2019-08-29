@@ -17,19 +17,15 @@
 	int backDistance = 0;
 
 //States
+	bool nextCycle = false;
 	bool frontBayFull = false;
 	bool backBayFull = false;
-	
-
-
-//Variables
-
-
-
+	bool baysFull = false;
 
 //Stop driving
 void stopMoving()
 {
+
 	setMotorSpeed(leftMotor, 0);
 	setMotorSpeed(rightMotor, 0);
 }
@@ -68,22 +64,13 @@ void moveBackward(int duration)
 void checkBays()
 {
 	//if one is there
-	if (frontDistance < parkedDistance)
+	if (frontDistance < parkedDistance || backDistance < parkedDistance)
 	{
-		fronBayFull = true;
+		baysFull = true;
 	}
 	else
 	{
-		fronBayFull = false;
-	}
-	
-	if (backDistance < parkedDistance)
-	{
-		backBayFull = true;
-	}
-	else
-	{
-		backBayFull = false;
+		baysFull = false;
 	}
 	
 	
@@ -104,21 +91,23 @@ task main()
 		//check for bots
 		checkBays();
 		
-		//moveForward(drivingDuration);
-		//moveBackward(drivingDuration);
-		if (frontBayFull && backBayFull)
+		// Load Drones if both drones are present and in next state
+		if (frontBayFull && backBayFull && nextCycle)
 		{
-			moveForward(drivingDuration);
-			sleep(waitingDuration);
-			moveBackward(drivingDuration);
-			sleep(waitingDuration);	
+			setMotorSpeed(beltA, 20);
+			setMotorSpeed(beltD, 20);
+			sleep(2000);
+			setMotorSpeed(beltA, 0);
+			setMotorSpeed(beltB, 0);
+			nextCycle = false;
 		}
-		else
+		
+		// If both drones have returned, move carrier forward
+		if (frontBayFull && backBayFull && !nextCycle)
 		{
-			moveForward(1);
-			moveBackward(1);
+			sleep(waitingDuration);
+			moveForward(drivingDuration)
+			nextCycle = true;
 		}
 	}
-
-
 }
