@@ -19,6 +19,7 @@ int currentDistance = 0;
 bool gripperOpen = true;
 bool delivered = false;
 bool correcting = false;
+bool gripperJog = false;
 int correctionDuration = 0;
 
 void stopMove()
@@ -90,6 +91,7 @@ void openGripper()
 	gripperOpen = true;
 }
 
+
 task main()
 {
 	//Infinite Loop
@@ -97,6 +99,43 @@ task main()
 	{
 		// Read the sensor
 		currentDistance = getUSDistance(sonarSensor);
+
+
+		if(getButtonPress(DOWN_BUTTON))
+		{
+			backwardMove(1500);
+		}
+
+		else if(getButtonPress(UP_BUTTON))
+		{
+			forwardMove(1500);
+		}
+
+		else if(getButtonPress(ENTER_BUTTON))
+		{
+			if(!gripperOpen)
+				openGripper();
+			delivered = false;
+			correcting = false;
+		}
+
+		else if(getButtonPress(LEFT_BUTTON))
+		{
+			setMotorSpeed(gripperMotor, -gripperSpeed);
+			gripperJog = true;
+		}
+
+		else if(getButtonPress(RIGHT_BUTTON))
+		{
+			setMotorSpeed(gripperMotor, gripperSpeed);
+			gripperJog = true;
+		}
+
+		else if(gripperJog)
+		{
+			setMotorSpeed(gripperMotor, 0);
+			gripperJog = false;
+		}
 
 		// Open gripper if delivered flag and gripper is closed.
 		if(delivered && !gripperOpen)
@@ -136,6 +175,7 @@ task main()
 		// deliver to red destination if color detected is set to red
 		if(!delivered && !gripperOpen && (colorDetected == colorRed))
 		{
+			playSoundFile("Boing");
 			forwardMove(drivingDuration);
 			rotateClockwise(90);
 			forwardMove(drivingDuration);
@@ -145,6 +185,7 @@ task main()
 		// deliver to blue destination if color detected is set to blue
 		if(!delivered && !gripperOpen && (colorDetected == colorBlue))
 		{
+			playSoundFile("Blue");
 			forwardMove(drivingDuration);
 			delivered = true;
 		}
@@ -152,6 +193,7 @@ task main()
 		// deliver to yellow destination if color detected is set to yellow
 		if(!delivered && !gripperOpen && (colorDetected == colorYellow))
 		{
+			playSoundFile("Yellow");
 			forwardMove(drivingDuration);
 			rotateAnticlockwise(90);
 			forwardMove(drivingDuration);
@@ -161,6 +203,7 @@ task main()
 		// deliver to green destination if color detected is set to green
 		if(!delivered && !gripperOpen && (colorDetected == colorGreen))
 		{
+			playSoundFile("Green");
 			forwardMove(drivingDuration);
 			rotateClockwise(90);
 			forwardMove(drivingDuration);
