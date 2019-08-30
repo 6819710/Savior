@@ -136,6 +136,7 @@ task main()
 		// deliver to red destination if color detected is set to red
 		if(!delivered && !gripperOpen && (colorDetected == colorRed))
 		{
+			playSoundFile("Red");
 			forwardMove(drivingDuration);
 			rotateClockwise(90);
 			forwardMove(drivingDuration);
@@ -145,6 +146,7 @@ task main()
 		// deliver to blue destination if color detected is set to blue
 		if(!delivered && !gripperOpen && (colorDetected == colorBlue))
 		{
+			playSoundFile("Blue");
 			forwardMove(drivingDuration);
 			delivered = true;
 		}
@@ -152,6 +154,7 @@ task main()
 		// deliver to yellow destination if color detected is set to yellow
 		if(!delivered && !gripperOpen && (colorDetected == colorYellow))
 		{
+			playSoundFile("Yellow");
 			forwardMove(drivingDuration);
 			rotateAnticlockwise(90);
 			forwardMove(drivingDuration);
@@ -161,6 +164,7 @@ task main()
 		// deliver to green destination if color detected is set to green
 		if(!delivered && !gripperOpen && (colorDetected == colorGreen))
 		{
+			playSoundFile("Green");
 			forwardMove(drivingDuration);
 			rotateClockwise(90);
 			forwardMove(drivingDuration);
